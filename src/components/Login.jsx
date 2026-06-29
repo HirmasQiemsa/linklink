@@ -4,15 +4,16 @@ import { Card, CardBody, CardHeader, Input, Button, Divider } from '@nextui-org/
 import { LogIn, UserPlus } from 'lucide-react';
 
 export default function Login({ setSession }) {
+  const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const formatEmail = (user) => `${user.toLowerCase().replace(/[^a-z0-9]/g, '')}@linklink.app`;
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setErrorMsg('');
     
     if (username.length < 6) {
@@ -34,7 +35,9 @@ export default function Login({ setSession }) {
 
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
-        setErrorMsg('Username atau PIN salah. Jika Anda belum terdaftar, silakan klik tombol Daftar.');
+        setErrorMsg('Username atau PIN salah. Jika Anda belum terdaftar, silakan buat akun baru.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setErrorMsg('Error: Fitur "Confirm email" masih aktif di Supabase Anda. Anda harus mematikannya di dashboard Supabase (Authentication > Providers > Email).');
       } else {
         setErrorMsg(error.message);
       }
@@ -42,9 +45,9 @@ export default function Login({ setSession }) {
     setLoading(false);
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
+  const handleRegister = async () => {
     setErrorMsg('');
+    setSuccessMsg('');
 
     if (username.length < 6) {
       setErrorMsg('Username minimal 6 karakter.');
@@ -70,37 +73,59 @@ export default function Login({ setSession }) {
 
     if (error) {
       if (error.message.includes('User already registered')) {
-        setErrorMsg('Username ini sudah terdaftar. Jika ini Anda, silakan klik tombol Masuk.');
+        setErrorMsg('Username ini sudah terdaftar. Silakan Masuk.');
       } else {
         setErrorMsg(error.message);
       }
     } else {
-      // Auto login happens after signup usually, but we might need to handle email verification if enabled in Supabase.
-      // Assuming email confirmation is OFF for this dummy setup.
       if (data.session) {
-         // Logged in successfully
+         // Auto login berhasil
       } else {
-        setErrorMsg('Akun berhasil dibuat, silakan klik Masuk.');
+        setSuccessMsg('Akun berhasil dibuat! Namun Anda tidak otomatis login. Pastikan "Confirm email" di Supabase dimatikan, lalu silakan Masuk.');
+        setIsRegister(false); // Kembalikan ke layar login
       }
     }
     setLoading(false);
   };
 
+  const toggleMode = () => {
+    setIsRegister(!isRegister);
+    setErrorMsg('');
+    setSuccessMsg('');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <Card className="w-full max-w-md p-6 shadow-xl rounded-2xl">
-        <CardHeader className="flex flex-col items-center pb-6">
-          <div className="bg-primary/10 p-4 rounded-full mb-4 text-primary">
-            <LogIn size={40} />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 md:bg-white">
+      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
+        
+        {/* Kolom Kiri: Branding (Terlihat seperti Facebook) */}
+        <div className="hidden md:flex flex-col justify-center items-start pl-4">
+          <div className="bg-primary p-4 rounded-2xl mb-6 text-white inline-block">
+            <LogIn size={48} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">Linklink</h1>
-          <p className="text-gray-500 text-center mt-2 text-lg">Pusat Tautan Aplikasi Anda</p>
-        </CardHeader>
-        <CardBody>
-          <form className="flex flex-col gap-6">
-            <Input 
-              label="Username"
-              placeholder="Masukkan minimal 6 karakter"
+          <h1 className="text-5xl font-extrabold text-primary mb-4">Linklink</h1>
+          <p className="text-2xl text-gray-700 leading-snug max-w-md">
+            Pusat tautan aplikasi Anda. Semua akses akademik dan pekerjaan kini ada di satu tempat.
+          </p>
+        </div>
+
+        {/* Kolom Kanan: Form Login */}
+        <div className="flex flex-col items-center">
+          
+          {/* Logo Mobile */}
+          <div className="md:hidden flex flex-col items-center mb-8">
+            <div className="bg-primary/10 p-4 rounded-full mb-4 text-primary">
+              <LogIn size={40} />
+            </div>
+            <h1 className="text-3xl font-bold text-primary">Linklink</h1>
+          </div>
+
+          <Card className="w-full max-w-md p-2 sm:p-6 shadow-2xl rounded-2xl md:border md:border-gray-100">
+            <CardBody>
+              <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
+                <Input 
+                  label="Username"
+                  placeholder="Masukkan minimal 6 karakter"
               variant="bordered"
               value={username}
               onValueChange={setUsername}
@@ -130,40 +155,73 @@ export default function Login({ setSession }) {
                 {errorMsg}
               </div>
             )}
+            
+            {successMsg && (
+              <div className="bg-success-50 text-success-600 p-4 rounded-xl text-center border border-success-200">
+                {successMsg}
+              </div>
+            )}
 
             <div className="flex flex-col gap-4 mt-2">
-              <Button 
-                color="primary" 
-                size="lg" 
-                className="text-lg font-bold" 
-                isLoading={loading}
-                onPress={handleLogin}
-                startContent={!loading && <LogIn size={20} />}
-              >
-                Masuk
-              </Button>
-              
-              <div className="flex items-center gap-4 py-2">
-                <Divider className="flex-1" />
-                <span className="text-gray-400 text-sm">ATAU</span>
-                <Divider className="flex-1" />
-              </div>
+              {isRegister ? (
+                <>
+                  <Button 
+                    color="primary" 
+                    size="lg" 
+                    className="text-lg font-bold" 
+                    isLoading={loading}
+                    onPress={handleRegister}
+                    startContent={!loading && <UserPlus size={20} />}
+                  >
+                    Buat Akun Sekarang
+                  </Button>
+                  <p className="text-center text-gray-500 mt-2">
+                    Sudah punya akun?{' '}
+                    <span 
+                      className="text-primary font-bold cursor-pointer hover:underline"
+                      onClick={toggleMode}
+                    >
+                      Masuk di sini
+                    </span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    color="primary" 
+                    size="lg" 
+                    className="text-lg font-bold" 
+                    isLoading={loading}
+                    onPress={handleLogin}
+                    startContent={!loading && <LogIn size={20} />}
+                  >
+                    Masuk
+                  </Button>
+                  
+                  <div className="flex items-center gap-4 py-2">
+                    <Divider className="flex-1" />
+                    <span className="text-gray-400 text-sm">ATAU</span>
+                    <Divider className="flex-1" />
+                  </div>
 
-              <Button 
-                color="default" 
-                variant="bordered"
-                size="lg" 
-                className="text-lg font-bold border-2" 
-                isLoading={loading}
-                onPress={handleRegister}
-                startContent={!loading && <UserPlus size={20} />}
-              >
-                Daftar Akun Baru
-              </Button>
+                  <Button 
+                    color="default" 
+                    variant="bordered"
+                    size="lg" 
+                    className="text-lg font-bold border-2" 
+                    onPress={toggleMode}
+                  >
+                    Daftar Akun Baru
+                  </Button>
+                </>
+              )}
             </div>
           </form>
         </CardBody>
       </Card>
+        </div>
+
+      </div>
     </div>
   );
 }

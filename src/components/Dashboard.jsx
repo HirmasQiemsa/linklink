@@ -295,9 +295,10 @@ export default function Dashboard({ session }) {
                   selectedKeys={[formData.icon]}
                   onChange={(e) => setFormData({...formData, icon: e.target.value})}
                   classNames={{label: "font-semibold text-base"}}
+                  startContent={<div className="text-primary">{getIconElement(formData.icon)}</div>}
                 >
                   {ICON_OPTIONS.map((item) => (
-                    <SelectItem key={item.key} value={item.key} startContent={item.icon}>
+                    <SelectItem key={item.key} value={item.key} startContent={<div className="text-gray-500">{item.icon}</div>}>
                       {item.label}
                     </SelectItem>
                   ))}
